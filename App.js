@@ -6,109 +6,80 @@
  * @flow
  */
 
-import React from 'react';
+import React, {useState, useRef} from 'react';
 import {
   SafeAreaView,
+  ActivityIndicator,
   StyleSheet,
-  ScrollView,
   View,
-  Text,
-  StatusBar,
+  TextInput,
 } from 'react-native';
-
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import List from './src/components/List/List';
+import Title from './src/components/other/Title';
+import {colors} from './src/constants';
+import {useApi} from './src/hooks';
+import {debounce} from './src/helpers';
 
 const App: () => React$Node = () => {
+  const [page, setPage] = useState(1);
+  const [inputValue, setInputValue] = useState('');
+  const [searchValue, setSearchValue] = useState('');
+  const [isLoading, recipesList, RESULTS_MAX_COUNT] = useApi(page, searchValue);
+
+  const nextPage = () => {
+    if (isLoading) {
+      return;
+    }
+    const isNextPage = RESULTS_MAX_COUNT * page === recipesList.length;
+    if (isNextPage) {
+      setPage(prevState => prevState + 1);
+    }
+  };
+
+  const onChange = val => {
+    setInputValue(val);
+    delayedQuery(val);
+  };
+
+  const delayedQuery = useRef(
+    debounce(q => {
+      setSearchValue(q);
+      setPage(1);
+    }, 500),
+  ).current;
+
   return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
+    <View style={styles.background}>
+      <SafeAreaView />
+
+      <SafeAreaView style={styles.content}>
+        <Title />
+        <TextInput
+          style={styles.search}
+          onChangeText={onChange}
+          value={inputValue}
+        />
+        <View style={styles.content}>
+          {isLoading && page === 1 ? (
+            <ActivityIndicator />
+          ) : (
+            <>
+              <List data={recipesList} nextPage={nextPage} />
+            </>
           )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
+        </View>
       </SafeAreaView>
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
+  background: {
+    backgroundColor: colors.main,
+    flex: 1,
   },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
-  },
+  content: {flex: 1, backgroundColor: colors.background},
+  search: {height: 40, borderColor: 'gray', borderWidth: 1, paddingLeft: 20},
 });
 
 export default App;
